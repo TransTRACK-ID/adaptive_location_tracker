@@ -1,0 +1,34 @@
+name: adaptive_location_tracker
+description: >
+  Cross-platform (Android + iOS) live location tracking: adaptive
+  speed-based filtering, an Android foreground service, an iOS
+  kill-survival background service, offline queueing, and degraded-mode
+  backoff -- with your backend and UI wired in via simple callbacks.
+version: 0.1.0
+homepage: https://github.com/your-org/adaptive_location_tracker
+publish_to: none # private git-hosted package -- not published to pub.dev
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.10.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  geolocator: '>=11.0.0 <13.0.0'
+  shared_preferences: ^2.2.0
+  battery_plus: ^6.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.adaptive_location_tracker
+        pluginClass: AdaptiveLocationTrackerPlugin
+      ios:
+        pluginClass: AdaptiveLocationTrackerPlugin
