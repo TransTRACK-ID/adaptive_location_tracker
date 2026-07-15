@@ -309,26 +309,27 @@ class LocationTrackingService : Service() {
                     persistCacheToPrefs(location, sentAtMs)
                 }
                 status == -1 || status in 500..599 -> {
-                    // Discard WiFi/cell-only fixes with no valid altitude --
-                    // altitudeAccuracy <= 0 means no barometric measurement.
-                    val hasValidAlt = location.altitude != 0.0 ||
-                        (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-                            location.verticalAccuracyMeters > 0)
-                    if (hasValidAlt) {
-                        queue.enqueue(
-                            LocationEntry(
-                                id = 0,
-                                lat = location.latitude,
-                                lon = location.longitude,
-                                timestampSec = location.time / 1000.0,
-                                accuracy = location.accuracy.toDouble(),
-                                speed = location.speed.toDouble(),
-                                heading = if (location.hasBearing()) location.bearing.toDouble() else -1.0,
-                                altitude = location.altitude,
-                                battery = battery,
-                            ),
-                        )
-                    }
+                    // Queue every fix that fails to send -- altitude/vertical-accuracy
+                    // has no bearing on whether a fix is worth retrying. Budget/no-barometer
+                    // devices routinely report altitude == 0 with no vertical accuracy on
+                    // WiFi/cell-assisted fixes, which silently dropped those points here
+                    // instead of queuing them. Matches the iOS kill-survival service
+                    // (queues unconditionally on failure) and the offline-flush path
+                    // (retries unconditionally), so this native sender no longer loses
+                    // data that the rest of the system would have kept.
+                    queue.enqueue(
+                        LocationEntry(
+                            id = 0,
+                            lat = location.latitude,
+                            lon = location.longitude,
+                            timestampSec = location.time / 1000.0,
+                            accuracy = location.accuracy.toDouble(),
+                            speed = location.speed.toDouble(),
+                            heading = if (location.hasBearing()) location.bearing.toDouble() else -1.0,
+                            altitude = location.altitude,
+                            battery = battery,
+                        ),
+                    )
                 }
                 // 4xx -- malformed, don't queue
             }
