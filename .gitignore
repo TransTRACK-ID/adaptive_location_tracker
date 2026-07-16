@@ -4,3 +4,7 @@ build/
 *.iml
 .idea/
 pubspec.lock
+.DS_Store
+**.zip
+android/.gradle
+android/local.properties
