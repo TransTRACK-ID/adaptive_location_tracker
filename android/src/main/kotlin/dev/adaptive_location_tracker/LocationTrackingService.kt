@@ -341,6 +341,16 @@ class LocationTrackingService : Service() {
     private fun flushQueue() {
         if (!flushLock.compareAndSet(false, true)) return
 
+        if (!isNetworkAvailable()) {
+            // No connection -- don't dequeue and don't fire the sync-begin
+            // event. Rows stay queued and will be retried once the
+            // ConnectivityManager.NetworkCallback below reports onAvailable(),
+            // or on the next heartbeat/flush trigger once connectivity is
+            // actually back.
+            flushLock.set(false)
+            return
+        }
+
         val url = trackingPrefs.getString(KEY_TRACKING_URL, "") ?: ""
         val subjectId = trackingPrefs.getString(KEY_SUBJECT_ID, "") ?: ""
         if (url.isEmpty() || subjectId.isEmpty()) {
@@ -527,6 +537,20 @@ class LocationTrackingService : Service() {
     }
 
     // ── Connectivity monitor ──────────────────────────────────────────────────
+
+    /**
+     * Synchronous connectivity check used to gate [flushQueue] -- mirrors the
+     * capability used by [registerNetworkCallback] so "network available"
+     * means the same thing whether we're reacting to a callback or polling
+     * right before a flush (heartbeat / ACTION_FLUSH / onLocationAvailability
+     * / service restart).
+     */
+    private fun isNetworkAvailable(): Boolean {
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = cm.activeNetwork ?: return false
+        val capabilities = cm.getNetworkCapabilities(network) ?: return false
+        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
 
     private fun registerNetworkCallback() {
         val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
