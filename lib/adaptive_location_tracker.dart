@@ -36,9 +36,19 @@ class AdaptiveLocationTracker {
   static AdaptiveLocationTrackerController? _instance;
 
   /// Configures the tracking flow. Must be called once before [start].
-  /// Safe to call again to update config between sessions (call [stop]
-  /// first if a session is active).
+  ///
+  /// Safe to call again at any time, including while a session is already
+  /// active -- if the current instance is tracking, it's stopped first
+  /// (native service disarmed, iOS stream cancelled) before being replaced,
+  /// so callers no longer need to remember to call [stop] themselves
+  /// before reconfiguring. Previously this was a documented caller
+  /// obligation; callers that skipped it (calling [configure]/[start]
+  /// again while already tracking) would leave the native side running
+  /// and then re-arm on top of it via a second `start` invocation.
   static Future<void> configure(AdaptiveLocationTrackerConfig config) async {
+    if (_instance?.isTracking ?? false) {
+      await _instance!.stop();
+    }
     _instance?.dispose();
     _instance = AdaptiveLocationTrackerController(config);
     await _instance!.configure();
@@ -57,6 +67,12 @@ class AdaptiveLocationTracker {
   static Future<StartResult> start() => _requireInstance.start();
 
   static Future<void> stop() => _requireInstance.stop();
+
+  /// Whether a tracking session is currently active. Calling [start]
+  /// again while this is `true` is safe (no-op success); calling
+  /// [configure] again while this is `true` safely stops the current
+  /// session first.
+  static bool get isTracking => _instance?.isTracking ?? false;
 
   /// Fire-and-forget: ask the native layer to drain its offline queue.
   static void tryFlush() => _requireInstance.tryFlush();

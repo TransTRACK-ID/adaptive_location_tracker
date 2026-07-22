@@ -44,6 +44,13 @@ class AdaptiveLocationTrackerController {
   bool _isFlushing = false;
   int _consecutiveFailures = 0;
   bool _configured = false;
+  bool _isTracking = false;
+
+  /// Whether a tracking session is currently active on this controller
+  /// (i.e. [start] has completed successfully and [stop] hasn't been
+  /// called since). Callers can use this to avoid calling [start] again
+  /// while a session is already running.
+  bool get isTracking => _isTracking;
 
   /// Broadcast stream of native background-flush events (e.g. to show a
   /// "syncing N offline points" indicator). Equivalent to subscribing to
@@ -76,6 +83,13 @@ class AdaptiveLocationTrackerController {
   /// (after confirming battery-optimization exemption, if configured); on
   /// iOS this also starts the Dart-side foreground position stream.
   Future<StartResult> start() async {
+    // Idempotency guard: a repeat `start()` call while a session is
+    // already active must not re-arm the native service or spin up a
+    // second iOS position stream on top of a running one -- both would
+    // leave the native side with duplicate listeners/callbacks. Since the
+    // session is already up, this is just a no-op success.
+    if (_isTracking) return StartResult.started;
+
     if (Platform.isAndroid && _config.ensureAndroidBatteryExemption != null) {
       final exempted = await _config.ensureAndroidBatteryExemption!();
       if (!exempted) return StartResult.androidBatteryExemptionDenied;
@@ -92,6 +106,7 @@ class AdaptiveLocationTrackerController {
       unawaited(_startIosStream());
     }
 
+    _isTracking = true;
     return StartResult.started;
   }
 
@@ -102,6 +117,7 @@ class AdaptiveLocationTrackerController {
       await _stopIosStream();
     }
     _isStarting = false;
+    _isTracking = false;
     LocationCache.clearMemory();
   }
 
