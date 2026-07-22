@@ -1,3 +1,15 @@
+## 0.1.3
+
+- Fix (Android): the queue flush no longer starts -- and no longer fires
+  the "sync begin" event -- while the device has no connection.
+  `flushQueue()` was reachable from triggers that run regardless of
+  connectivity (the heartbeat interval, `onLocationAvailability`,
+  `ACTION_FLUSH`, service restart), so a flush attempt -- and the
+  resulting host-app "syncing N offline locations" notice -- could
+  surface even though the device was offline and nothing was actually
+  being sent. Android now checks connectivity first and leaves queued
+  rows untouched until a real connectivity-restore callback fires.
+
 ## 0.1.2
 
 - Fix (Android): coordinate/speed/bearing/altitude/accuracy values sent to the

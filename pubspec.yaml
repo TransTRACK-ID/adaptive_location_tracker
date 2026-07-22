@@ -4,7 +4,7 @@ description: >
   speed-based filtering, an Android foreground service, an iOS
   kill-survival background service, offline queueing, and degraded-mode
   backoff -- with your backend and UI wired in via simple callbacks.
-version: 0.1.2
+version: 0.1.3
 homepage: https://github.com/your-org/adaptive_location_tracker
 publish_to: none # private git-hosted package -- not published to pub.dev
 

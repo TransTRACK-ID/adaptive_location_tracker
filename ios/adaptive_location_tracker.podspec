@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'adaptive_location_tracker'
-  s.version          = '0.1.0'
+  s.version          = '0.1.3'
   s.summary          = 'Cross-platform live location tracking (Android + iOS).'
   s.description      = <<-DESC
 Adaptive speed-based filtering, an Android foreground service, an iOS
