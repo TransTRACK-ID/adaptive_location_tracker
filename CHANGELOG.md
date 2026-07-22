@@ -1,3 +1,23 @@
+## 0.1.4
+
+- AdaptiveLocationTracker.configure() unconditionally disposed and
+  recreated the controller instance, but dispose() never called
+  NativeBridge.stop() -- so calling configure()/start() again while a
+  session was already active (e.g. app calls registerOnLocationChanged()
+  for a second concurrently-running task) left the native foreground
+  service/kill-survival session running and then re-armed it via a
+  second native `start` invocation, with no dedup on either side.
+
+  - AdaptiveLocationTrackerController: track _isTracking; start() is now
+    a no-op success if already tracking; stop() clears the flag; expose
+    isTracking getter.
+  - AdaptiveLocationTracker (static facade): configure() now stops any
+    active session on the current instance before disposing/recreating
+    it, instead of relying on callers to remember to call stop() first.
+    Exposes AdaptiveLocationTracker.isTracking.
+
+  No public API removed; StartResult and method signatures unchanged.
+
 ## 0.1.3
 
 - Fix (Android): the queue flush no longer starts -- and no longer fires
